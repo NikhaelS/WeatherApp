@@ -17,6 +17,7 @@ namespace WeatherApp.Controllers
             _weatherService = weatherService;
         }
 
+        //Controller for current weather forecast.
         [HttpGet]
         public async Task<IActionResult> GetWeather([FromQuery] double latitude, [FromQuery] double longitude)
         {
@@ -36,17 +37,18 @@ namespace WeatherApp.Controllers
             }
         }
 
+        //Controller for convert temperature to different units.
         [HttpGet("convert")]
         public IActionResult ConvertTemperature([FromQuery] double temperature, [FromQuery] string fromUnit, [FromQuery] string toUnit)
         {
             double result;
             switch (fromUnit.ToLower())
             {
-                case "celcius":
+                case "celsius":
                     result = toUnit.ToLower() switch
                     {
                         "fahrenheit" => TemperatureConversions.ConvertCelsiusFahrenheit(temperature),
-                        "kelvin" => TemperatureConversions.ConvertCelciusKelvin(temperature),
+                        "kelvin" => TemperatureConversions.ConvertCelsiusKelvin(temperature),
                         _ => throw new ArgumentException("Invalid Unit"),
                     };
                     break;
@@ -54,16 +56,16 @@ namespace WeatherApp.Controllers
                     result = toUnit.ToLower() switch
                     {
 
-                        "celcius" => TemperatureConversions.ConvertFahrenheitCelcius(temperature),
-                        "kelvin" => TemperatureConversions.ConvertCelciusKelvin(TemperatureConversions.ConvertFahrenheitCelcius(temperature)),
+                        "celsius" => TemperatureConversions.ConvertFahrenheitCelsius(temperature),
+                        "kelvin" => TemperatureConversions.ConvertCelsiusKelvin(TemperatureConversions.ConvertFahrenheitCelsius(temperature)),
                         _ => throw new ArgumentException("Invalid Unit"),
                     };
                     break;
                 case "kelvin":
                     result = toUnit.ToLower() switch
                     {
-                        "celcius" => TemperatureConversions.ConvertKelvinCelcius(temperature),
-                        "fahrenheit" => TemperatureConversions.ConvertCelsiusFahrenheit(TemperatureConversions.ConvertKelvinCelcius(temperature)),
+                        "celsius" => TemperatureConversions.ConvertKelvinCelsius(temperature),
+                        "fahrenheit" => TemperatureConversions.ConvertCelsiusFahrenheit(TemperatureConversions.ConvertKelvinCelsius(temperature)),
                         _ => throw new ArgumentException("Invalid Unit"),
                     };
                     break;
@@ -72,6 +74,36 @@ namespace WeatherApp.Controllers
             }
 
             return Ok(new { original = temperature, converted = result });
+        }
+
+        //Controller for calculating average temperature.
+        [HttpGet("averageTemperature")]
+        public async Task<IActionResult> GetAverageTemperature([FromQuery] double latitude, [FromQuery] double longitude)
+        {
+            try
+            {
+                var averageTemperature = await _weatherService.GetWeeklyAevrageTempAsync(latitude, longitude);
+                return Ok(new { averageTemperature });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        //Controller for calculating highest and lowest temperature.
+        [HttpGet("highLowTemp")]
+        public async Task<ActionResult> GetHighestLowestTemperature([FromQuery] double latitude, [FromQuery] double longitude)
+        {
+            try
+            {
+                var (highestTemp, lowestTemp) = await _weatherService.GetHighestLowestTempAsync(latitude, longitude);
+                return Ok(new { HighestTemp = highestTemp, LowestTemp = lowestTemp });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 

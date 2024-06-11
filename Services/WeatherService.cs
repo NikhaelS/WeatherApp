@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using WeatherApp.Models;
 
@@ -10,49 +13,90 @@ namespace WeatherApp.Services
     {
         private readonly WeatherApi _weatherApi;
         private readonly ILogger<WeatherService> _logger;
+        private readonly RestClient _client;
 
         public WeatherService(IOptions<WeatherApi> weatherApi, ILogger<WeatherService> logger)
         {
             _weatherApi = weatherApi.Value;
             _logger = logger;
+            _client = new RestClient(_weatherApi.BaseUrl);
         }
 
-        public async Task<WeatherResponse> GetWeatherAsync(double latitude, double longitude)
+        private async Task<T> GetApiResponseAsync<T>(string endpoint, double latitude, double longitude)
         {
-            var client = new RestClient(_weatherApi.BaseUrl);
-            var request = new RestRequest("data/2.5/weather", Method.Get);
+            var request = new RestRequest(endpoint, Method.Get);
             request.AddParameter("lat", latitude);
             request.AddParameter("lon", longitude);
             request.AddParameter("appid", _weatherApi.ApiKey);
 
-            _logger.LogInformation("Sending request to OpenWeatherMap API");
-            _logger.LogInformation("Request URL: {0}", client.BuildUri(request));
-            _logger.LogInformation("API Key: {0}", _weatherApi.ApiKey);
+            _logger.LogInformation("Sending request to OpenWeatherMap API: {RequestUrl}", _client.BuildUri(request));
 
-            var response = await client.ExecuteAsync<WeatherResponse>(request);
+            var response = await _client.ExecuteAsync(request);
+
             if (response.ErrorException != null)
             {
                 _logger.LogError("Error retrieving weather data: {Message}", response.ErrorException.Message);
                 throw new ApplicationException("Error retrieving weather data", response.ErrorException);
             }
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                _logger.LogError("Unauthorized access - check your API key");
-                throw new ApplicationException("Unauthorized access - check your API key");
-            }
-
             if (!response.IsSuccessful)
             {
-                _logger.LogError("Request failed with status code {0}: {1}", response.StatusCode, response.Content);
+                _logger.LogError("Request failed with status code {StatusCode}: {Content}", response.StatusCode, response.Content);
                 throw new ApplicationException($"Request failed with status code {response.StatusCode}: {response.Content}");
             }
 
-            _logger.LogInformation("Successfully retrieved weather data");
+            return JsonConvert.DeserializeObject<T>(response.Content);
+        }
 
-            return response.Data;
+        public async Task<WeatherResponse> GetWeatherAsync(double latitude, double longitude)
+        {
+            try
+            {
+                return await GetApiResponseAsync<WeatherResponse>("data/2.5/weather", latitude, longitude);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving weather data");
+                throw;
+            }
+        }
 
+        public async Task<double> GetWeeklyAevrageTempAsync(double latitude, double longitude)
+        {
+            try
+            {
+                var forecastResponse = await GetApiResponseAsync<ForecastResponse>("data/2.5/forecast", latitude, longitude);
+                var dailyTemperatures = forecastResponse.List.Select(entry => entry.Main.Temp);
+                var averageTemperature = dailyTemperatures.Average();
+
+                _logger.LogInformation("Successfully calculated weekly average temperature");
+                return averageTemperature;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating weekly average temperature");
+                throw;
+            }
+        }
+
+        public async Task<(double HighestTemp, double LowestTemp)> GetHighestLowestTempAsync(double latitude, double longitude)
+        {
+            try
+            {
+                var forecastResponse = await GetApiResponseAsync<ForecastResponse>("data/2.5/forecast", latitude, longitude);
+                var temperatures = forecastResponse.List.Select(entry => entry.Main.Temp).ToArray();
+
+                var highestTemp = temperatures.Max();
+                var lowestTemp = temperatures.Min();
+
+                _logger.LogInformation("Successfully calculated highest & lowest temperatures.");
+                return (highestTemp, lowestTemp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating highest and lowest temperatures");
+                throw;
+            }
         }
     }
-
 }
