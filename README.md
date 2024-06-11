@@ -1,20 +1,20 @@
 Weather App
 
-Getting started:
+1. Getting started:
 Clone this repository to your local machine:
 git clone https://github.com/NikhaelS/WeatherApp.git
 
-Navigate to the project directory:
+2. Navigate to the project directory:
 cd WeatherApp
 
-Install necessary dependancies:
+3. Install necessary dependancies:
 dotnet restore
 
-Build and run the application:
+4. Build and run the application:
 dotnet build --project WeatherApp
 dotnet run --project WeatherApp
 
-Use Postman to easily access the endpoints. Below is a list of the available endpoints:
+5. Use Postman to easily access the endpoints. Below is a list of the available endpoints:
 Get current weather:
 http://localhost:5052/api/weather?latitude={yourLatitude}&longitude={yourLongitude}
 
