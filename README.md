@@ -2,7 +2,7 @@ Weather App
 
 Getting started:
 Clone this repository to your local machine:
-git clone <repository_url>
+git clone https://github.com/NikhaelS/WeatherApp.git
 
 Navigate to the project directory:
 cd WeatherApp
