@@ -4,22 +4,22 @@ namespace WeatherApp.Services
 {
     public static class TemperatureConversions
     {
-        public static double ConvertCelsiusFahrenheit(double celcius)
+        public static double ConvertCelsiusFahrenheit(double celsius)
         {
-            return (celcius * 9 / 5) + 32;
+            return (celsius * 9 / 5) + 32;
         }
 
-        public static double ConvertFahrenheitCelcius(double fahrenheit)
+        public static double ConvertFahrenheitCelsius(double fahrenheit)
         {
             return (fahrenheit - 32) * 5 / 9;
         }
 
-        public static double ConvertCelciusKelvin(double celcius)
+        public static double ConvertCelsiusKelvin(double celsius)
         {
-            return celcius + 273.15;
+            return celsius + 273.15;
         }
 
-        public static double ConvertKelvinCelcius(double kelvin)
+        public static double ConvertKelvinCelsius(double kelvin)
         {
             return kelvin - 273.15;
         }
